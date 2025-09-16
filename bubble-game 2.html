@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bubble Shooter Game</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      background: #111;
+    }
+    canvas {
+      display: block;
+      background: #222;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+let mouseX = canvas.width/2, mouseY = canvas.height/2;
+
+// Store bubbles as {x, y, radius, color, vy}
+let bubbles = [];
+
+function randomColor() {
+  return `hsl(${Math.random()*360}, 90%, 60%)`;
+}
+
+window.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    // Shoot a bubble up from the mouse location
+    bubbles.push({
+      x: mouseX,
+      y: mouseY,
+      radius: 30 + Math.random()*20,
+      color: randomColor(),
+      vy: -5 - Math.random()*2 // shoot upwards
+    });
+  }
+});
+
+canvas.addEventListener('mousedown', e => {
+  const mx = e.clientX, my = e.clientY;
+  for (let i = bubbles.length-1; i >= 0; i--) {
+    let b = bubbles[i];
+    let dx = b.x - mx, dy = b.y - my;
+    if (dx*dx + dy*dy < b.radius*b.radius) {
+      // Pop the bubble
+      bubbles.splice(i,1);
+      // Optional: add pop effect (small circle burst)
+      for (let j = 0; j < 8; j++) {
+        popParticles.push({
+          x: b.x, y: b.y,
+          vx: Math.cos(2*Math.PI*j/8)*4,
+          vy: Math.sin(2*Math.PI*j/8)*4,
+          color: b.color,
+          life: 20
+        });
+      }
+      break;
+    }
+  }
+});
+
+// Simple pop particles
+let popParticles = [];
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Draw bubbles
+  for (const b of bubbles) {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.radius, 0, 2*Math.PI);
+    ctx.fillStyle = b.color;
+    ctx.globalAlpha = 0.7;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#fff";
+    ctx.stroke();
+  }
+  // Draw pop particles
+  for (const p of popParticles) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, 2*Math.PI);
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life/20;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  // Draw hint text at the bottom
+  const hint = "Press SPACE to shoot bubbles | Click to pop!";
+  ctx.save();
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.globalAlpha = 0.85;
+  ctx.fillText(hint, canvas.width/2, canvas.height - 24);
+  ctx.restore();
+}
+
+function update() {
+  // Move bubbles
+  for (let i = bubbles.length-1; i>=0; i--) {
+    let b = bubbles[i];
+    b.y += b.vy;
+    // Remove if off screen
+    if (b.y + b.radius < 0) bubbles.splice(i,1);
+  }
+  // Move particles
+  for (let i = popParticles.length-1; i>=0; i--) {
+    let p = popParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) popParticles.splice(i,1);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
